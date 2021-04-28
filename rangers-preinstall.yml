@@ -1,0 +1,120 @@
+---
+- name: rangers preinstall
+  hosts: rangers
+  vars:
+    timezone: Asia/Shanghai
+    ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD" }
+    data_disks:
+      - {"device": "/dev/vdb", "mount_point": "/data00"}
+      - {"device": "/dev/vdc", "mount_point": "/data01"}
+    format_confirm: no
+
+
+  tasks:
+  - name: set timezone
+    timezone:
+      name: "{{ timezone }}"
+
+  - name: set hostname
+    hostname:
+      name: "{{ inventory_hostname }}"
+  
+  - name: /etc/hosts
+    lineinfile: 
+      dest: /etc/hosts 
+      line: "{{ hostvars[item].ansible_host }} {{ hostvars[item]['inventory_hostname'] }}" 
+      state: present
+    loop: "{{ ansible_play_hosts }}"
+
+  - name: format disk
+    filesystem:
+      fstype: ext4
+      dev: "{{ item.device }}"
+    when: "{{ format_confirm }}"
+    loop: "{{ data_disks }}"
+  
+  - name: mount data_disks
+    mount:
+      path: "{{ item.mount_point }}"
+      src: "{{ item.device }}"
+      fstype: ext4
+      opts: defaults
+      state: mounted
+    loop: "{{ data_disks }}"
+
+  - name: update fstab
+    replace: 
+      path: /etc/fstab
+      regexp: "{{ item.device }}"
+      replace: "UUID={{ item.uuid }}"
+      backup: yes
+    loop: "{{ ansible_mounts }}"
+
+  - name: add group
+    group:
+      name: "{{ ranger_user.group }}"
+      state: present
+  
+  - name: add user
+    user:
+      name: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+      shell: /bin/bash
+      append: yes
+      system: yes
+  
+  - name: change password
+    user:
+      name: "{{ ranger_user.user }}"
+      update_password: always
+      password: "{{ ranger_user.password|password_hash('sha512') }}"
+
+  - name: add sudoer
+    lineinfile:
+      path: /etc/sudoers.d/{{ ranger_user.user }}
+      line: "{{ ranger_user.user }}    ALL=(ALL)       NOPASSWD:ALL"
+      owner: root
+      group: root
+      mode: 0400
+      create: yes
+      validate: "/usr/sbin/visudo -cf %s"
+
+  - name: create ssh dir
+    file:
+      path: /home/{{ ranger_user.user }}/.ssh
+      state: directory
+      owner: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+      mode: 0755
+
+  - name: sync ssh key
+    copy:
+      src: /home/{{ ranger_user.user }}/ByteRanger.key.pub
+      dest: /home/{{ ranger_user.user }}/.ssh/authorized_keys
+      owner: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+      mode: 0400
+
+  - name: copy /home/{{ ranger_user.user }} to /data00/{{ ranger_user.user }}
+    copy:
+      src: /home/{{ ranger_user.user }}
+      dest: /data00/
+      owner: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+      mode: 0755
+      remote_src: yes
+
+  - name: rm /home/{{ ranger_user.user }}
+    file: 
+      path: /home/{{ ranger_user.user }}
+      state: absent
+
+  - name: link home dir
+    file:
+      src: /data00/{{ ranger_user.user }}
+      dest: /home/{{ ranger_user.user }}
+      owner: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+      state: link
+      force: yes
+

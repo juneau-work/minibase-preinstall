@@ -8,7 +8,8 @@
       - {"device": "/dev/vdb", "mount_point": "/data00"}
       - {"device": "/dev/vdc", "mount_point": "/data01"}
     format_confirm: no
-
+    local: "{{ groups['rangers'][0] }}"
+    rangers_ssh_private_key: ByteRanger.key
 
   tasks:
   - name: set timezone
@@ -30,7 +31,7 @@
     filesystem:
       fstype: ext4
       dev: "{{ item.device }}"
-    when: "{{ format_confirm }}"
+    when: format_confirm
     loop: "{{ data_disks }}"
   
   - name: mount data_disks
@@ -48,7 +49,7 @@
       regexp: "{{ item.device }}"
       replace: "UUID={{ item.uuid }}"
       backup: yes
-    loop: "{{ ansible_mounts }}"
+    loop: "{{ ansible_mounts | rejectattr('mount', 'match', '/') | list }}"
 
   - name: add group
     group:
@@ -87,9 +88,24 @@
       group: "{{ ranger_user.group }}"
       mode: 0755
 
+  - name: ssh key exist ?
+    stat:
+      path: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
+    register: key_exists
+    delegate_to: "{{ local }}"
+    run_once: True
+
+  - name: generate ssh key
+    raw: yes y | ssh-keygen -t rsa -N '' -q -f /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}
+    become: yes
+    become_user: "{{ ranger_user.user }}"
+    delegate_to: "{{ local }}"
+    run_once: True
+    when: not key_exists.stat.exists
+
   - name: sync ssh key
     copy:
-      src: /home/{{ ranger_user.user }}/ByteRanger.key.pub
+      src: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
       dest: /home/{{ ranger_user.user }}/.ssh/authorized_keys
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"

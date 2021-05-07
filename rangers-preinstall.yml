@@ -109,7 +109,7 @@
       dest: /home/{{ ranger_user.user }}/.ssh/authorized_keys
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
-      mode: 0400
+      mode: 0600
 
   - name: copy /home/{{ ranger_user.user }} to /data00/{{ ranger_user.user }}
     copy:

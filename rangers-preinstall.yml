@@ -9,7 +9,7 @@
       - {"device": "/dev/vdc", "mount_point": "/data01"}
     format_confirm: no
     local: "{{ groups['rangers'][0] }}"
-    rangers_ssh_private_key: ByteRanger.key
+    rangers_ssh_private_key: Deploy.key
 
   tasks:
   - name: set timezone

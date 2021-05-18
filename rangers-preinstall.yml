@@ -7,6 +7,7 @@
     data_disks:
       - {"device": "/dev/sdb", "mount_point": "/data00"}
       - {"device": "/dev/sdc", "mount_point": "/data01"}
+      - {"device": "/dev/sdd", "mount_point": "/data02"}
     format_confirm: no
     jumper_host: "{{ groups['rangers'][0] }}"
     home_link_dir: "{{ data_disks[0]['mount_point'] }}"
@@ -28,10 +29,17 @@
       state: present
     loop: "{{ ansible_play_hosts }}"
 
+  - name: new primary partition
+    parted:
+      device: "{{ item.device }}"
+      number: 1
+      state: present
+    loop: "{{ data_disks }}"
+
   - name: format disk
     filesystem:
       fstype: ext4
-      dev: "{{ item.device }}"
+      dev: "{{ item.device }}1"
       force: "{{ format_confirm }}"
     when: format_confirm
     loop: "{{ data_disks }}"
@@ -40,7 +48,7 @@
   - name: mount data_disks
     mount:
       path: "{{ item.mount_point }}"
-      src: "{{ item.device }}"
+      src: "{{ item.device }}1"
       fstype: ext4
       opts: defaults
       state: mounted

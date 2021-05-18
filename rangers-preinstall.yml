@@ -113,10 +113,10 @@
       group: "{{ ranger_user.group }}"
       mode: 0600
 
-  - name: copy /home/{{ ranger_user.user }} to /data00/{{ ranger_user.user }}
+  - name: copy /home/{{ ranger_user.user }} to {{ data_disks[0]['mount_point'] }}/{{ ranger_user.user }}
     copy:
       src: /home/{{ ranger_user.user }}
-      dest: /data00/
+      dest: "{{ data_disks[0]['mount_point'] }}"
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
       mode: 0755
@@ -129,7 +129,7 @@
 
   - name: link home dir
     file:
-      src: /data00/{{ ranger_user.user }}
+      src: "{{ data_disks[0]['mount_point'] }}/{{ ranger_user.user }}"
       dest: /home/{{ ranger_user.user }}
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"

@@ -49,7 +49,7 @@
       regexp: "{{ item.device }}"
       replace: "UUID={{ item.uuid }}"
       backup: yes
-    loop: "{{ ansible_mounts | rejectattr('mount', 'match', '/') | list }}"
+    loop: "{{ ansible_mounts | rejectattr('mount', 'match', '^/$') | list }}"
 
   - name: add group
     group:

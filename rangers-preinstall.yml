@@ -8,7 +8,8 @@
       - {"device": "/dev/vdb", "mount_point": "/data00"}
       - {"device": "/dev/vdc", "mount_point": "/data01"}
     format_confirm: no
-    local: "{{ groups['rangers'][0] }}"
+    jumper_host: "{{ groups['rangers'][0] }}"
+    home_link_dir: "{{ data_disks[0]['mount_point'] }}"
     rangers_ssh_private_key: Deploy.key
 
   tasks:
@@ -94,14 +95,14 @@
     stat:
       path: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
     register: key_exists
-    delegate_to: "{{ local }}"
+    delegate_to: "{{ jumper_host }}"
     run_once: True
 
   - name: generate ssh key
     raw: yes y | ssh-keygen -t rsa -N '' -q -f /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}
     become: yes
     become_user: "{{ ranger_user.user }}"
-    delegate_to: "{{ local }}"
+    delegate_to: "{{ jumper_host }}"
     run_once: True
     when: not key_exists.stat.exists
 
@@ -113,10 +114,10 @@
       group: "{{ ranger_user.group }}"
       mode: 0600
 
-  - name: copy /home/{{ ranger_user.user }} to {{ data_disks[0]['mount_point'] }}/{{ ranger_user.user }}
+  - name: copy /home/{{ ranger_user.user }} to {{ home_link_dir }}/{{ ranger_user.user }}
     copy:
       src: /home/{{ ranger_user.user }}
-      dest: "{{ data_disks[0]['mount_point'] }}"
+      dest: "{{ home_link_dir }}/{{ ranger_user.user }}"
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
       mode: 0755
@@ -129,7 +130,7 @@
 
   - name: link home dir
     file:
-      src: "{{ data_disks[0]['mount_point'] }}/{{ ranger_user.user }}"
+      src: "{{ home_link_dir }}/{{ ranger_user.user }}"
       dest: /home/{{ ranger_user.user }}
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"

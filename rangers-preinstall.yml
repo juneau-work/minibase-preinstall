@@ -31,8 +31,10 @@
     filesystem:
       fstype: ext4
       dev: "{{ item.device }}"
+      force: "{{ format_confirm }}"
     when: format_confirm
     loop: "{{ data_disks }}"
+    tags: format
   
   - name: mount data_disks
     mount:

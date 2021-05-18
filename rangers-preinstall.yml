@@ -5,8 +5,8 @@
     timezone: Asia/Shanghai
     ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD" }
     data_disks:
-      - {"device": "/dev/vdb", "mount_point": "/data00"}
-      - {"device": "/dev/vdc", "mount_point": "/data01"}
+      - {"device": "/dev/sdb", "mount_point": "/data00"}
+      - {"device": "/dev/sdc", "mount_point": "/data01"}
     format_confirm: no
     jumper_host: "{{ groups['rangers'][0] }}"
     home_link_dir: "{{ data_disks[0]['mount_point'] }}"
@@ -45,6 +45,7 @@
       opts: defaults
       state: mounted
     loop: "{{ data_disks }}"
+    tags: mount
 
   - name: update fstab
     replace: 
@@ -52,7 +53,8 @@
       regexp: "{{ item.device }}"
       replace: "UUID={{ item.uuid }}"
       backup: yes
-    loop: "{{ ansible_mounts | rejectattr('mount', 'match', '^/$') | list }}"
+    loop: "{{ ansible_mounts | selectattr('mount', 'match', '^/data0[0-9]$') | list }}"
+    tags: fstab
 
   - name: add group
     group:
@@ -106,9 +108,19 @@
     run_once: True
     when: not key_exists.stat.exists
 
+  - name: fetch ssh key
+    fetch:
+      flat: yes
+      src: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
+      dest: /tmp/{{ rangers_ssh_private_key }}.pub
+      owner: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+      mode: 0600
+    delegate_to: "{{ jumper_host }}"
+
   - name: sync ssh key
     copy:
-      src: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
+      src: /tmp/{{ rangers_ssh_private_key }}.pub
       dest: /home/{{ ranger_user.user }}/.ssh/authorized_keys
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
@@ -122,6 +134,7 @@
       group: "{{ ranger_user.group }}"
       mode: 0755
       remote_src: yes
+    tags: hello
 
   - name: rm /home/{{ ranger_user.user }}
     file: 

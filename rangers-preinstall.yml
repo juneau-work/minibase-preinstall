@@ -4,11 +4,11 @@
   vars:
     rangers_ssh_private_key: Deploy.key
     ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD" }
+    format_confirm: no
     data_disks:
       - {"device": "/dev/sdb1", "mount_point": "/data00"}
       - {"device": "/dev/sdc1", "mount_point": "/data01"}
       - {"device": "/dev/sdd1", "mount_point": "/data02"}
-    format_confirm: yes
     jumper_host: "{{ groups['rangers'][0] }}"
     home_link_dir: "{{ data_disks[0]['mount_point'] }}"
     timezone: Asia/Shanghai
@@ -159,20 +159,41 @@
       group: "{{ ranger_user.group }}"
       mode: 0600
 
+  - name: "{{ home_link_dir }}/{{ ranger_user.user }} exists ?"
+    stat:
+      path: "{{ home_link_dir }}/{{ ranger_user.user }}"
+    register: home_link_dest
+    tags: home_link
+
+  - name: "/home/{{ ranger_user.user }} exists ?"
+    stat:
+      path: /home/{{ ranger_user.user }}
+    register: home_link_src
+    tags: home_link
+
   - name: copy /home/{{ ranger_user.user }} to {{ home_link_dir }}/{{ ranger_user.user }}
     copy:
       src: /home/{{ ranger_user.user }}
-      dest: "{{ home_link_dir }}/{{ ranger_user.user }}"
+      dest: "{{ home_link_dir }}"
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
       mode: 0755
       remote_src: yes
-    tags: hello
+    when: home_link_dest.stat.isdir is not defined and home_link_src.stat.isdir is defined and home_link_src.stat.isdir
+    tags: home_link
 
   - name: rm /home/{{ ranger_user.user }}
     file: 
       path: /home/{{ ranger_user.user }}
       state: absent
+    when: home_link_src.stat.isdir is defined and home_link_src.stat.isdir
+    tags: home_link
+
+  - name: "{{ home_link_dir }}/{{ ranger_user.user }} exists (again) ?"
+    stat:
+      path: "{{ home_link_dir }}/{{ ranger_user.user }}"
+    register: home_link_dest
+    tags: home_link
 
   - name: link home dir
     file:
@@ -182,4 +203,5 @@
       group: "{{ ranger_user.group }}"
       state: link
       force: yes
-
+    when: home_link_dest.stat.isdir is defined and home_link_dest.stat.isdir
+    tags: home_link

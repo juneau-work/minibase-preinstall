@@ -2,16 +2,16 @@
 - name: rangers preinstall
   hosts: rangers
   vars:
-    timezone: Asia/Shanghai
+    rangers_ssh_private_key: Deploy.key
     ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD" }
     data_disks:
-      - {"device": "/dev/sdb", "mount_point": "/data00"}
-      - {"device": "/dev/sdc", "mount_point": "/data01"}
-      - {"device": "/dev/sdd", "mount_point": "/data02"}
-    format_confirm: no
+      - {"device": "/dev/sdb1", "mount_point": "/data00"}
+      - {"device": "/dev/sdc1", "mount_point": "/data01"}
+      - {"device": "/dev/sdd1", "mount_point": "/data02"}
+    format_confirm: yes
     jumper_host: "{{ groups['rangers'][0] }}"
     home_link_dir: "{{ data_disks[0]['mount_point'] }}"
-    rangers_ssh_private_key: Deploy.key
+    timezone: Asia/Shanghai
 
   tasks:
   - name: set timezone
@@ -29,31 +29,53 @@
       state: present
     loop: "{{ ansible_play_hosts }}"
 
+  - name: install parted
+    apt:
+      name: ["parted"]
+      state: present
+      update_cache: yes
+      install_recommends: no
+    when: ansible_os_family == "Debian"
+
+  - name: install parted
+    yum:
+      name: ["parted"]
+      state: present
+      update_cache: yes
+    when: ansible_os_family == "Redhat"
+
   - name: new primary partition
     parted:
-      device: "{{ item.device }}"
+      device: "{{ item.device | replace('1','') }}"
       number: 1
       state: present
     loop: "{{ data_disks }}"
+    loop_control:
+      label: "{{ item.device }}"
 
   - name: format disk
     filesystem:
       fstype: ext4
-      dev: "{{ item.device }}1"
+      dev: "{{ item.device }}"
       force: "{{ format_confirm }}"
     when: format_confirm
     loop: "{{ data_disks }}"
+    loop_control:
+      label: "{{ item.device }}"
     tags: format
   
   - name: mount data_disks
     mount:
       path: "{{ item.mount_point }}"
-      src: "{{ item.device }}1"
+      src: "{{ item.device }}"
       fstype: ext4
       opts: defaults
       state: mounted
     loop: "{{ data_disks }}"
     tags: mount
+
+  - name: force ansible to regather facts(uuid)
+    setup: filter='ansible_mounts'
 
   - name: update fstab
     replace: 
@@ -62,6 +84,10 @@
       replace: "UUID={{ item.uuid }}"
       backup: yes
     loop: "{{ ansible_mounts | selectattr('mount', 'match', '^/data0[0-9]$') | list }}"
+    loop_control:
+      label: 
+        - "{{ item.device }}"
+        - "{{ item.uuid }}"
     tags: fstab
 
   - name: add group
@@ -106,7 +132,6 @@
       path: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
     register: key_exists
     delegate_to: "{{ jumper_host }}"
-    run_once: True
 
   - name: generate ssh key
     raw: yes y | ssh-keygen -t rsa -N '' -q -f /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}

@@ -6,6 +6,6 @@ ansible_password=root
 ansible_connection=paramiko
 
 [rangers]
-srv1 ansible_host=192.168.56.31
-srv2 ansible_host=192.168.56.32
-srv3 ansible_host=192.168.56.33
+srv1 ansible_host=192.168.56.51
+#srv2 ansible_host=192.168.56.52
+#srv3 ansible_host=192.168.56.53

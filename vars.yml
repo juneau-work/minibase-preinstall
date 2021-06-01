@@ -4,7 +4,6 @@ format_confirm: no
 data_disks:
   - {"device": "/dev/sdb1", "mount_point": "/data00"}
   - {"device": "/dev/sdc1", "mount_point": "/data01"}
-  - {"device": "/dev/sdd1", "mount_point": "/data02"}
 jumper_host: "{{ groups['rangers'][0] }}"
 home_link: yes
 home_link_dir: "{{ data_disks[0]['mount_point'] }}"

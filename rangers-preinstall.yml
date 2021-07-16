@@ -8,10 +8,12 @@
   - name: set timezone
     timezone:
       name: "{{ timezone }}"
+    tags: timezone
 
   - name: set hostname
     hostname:
       name: "{{ inventory_hostname }}"
+    tags: hostname
   
   - name: /etc/hosts
     lineinfile: 
@@ -19,6 +21,7 @@
       line: "{{ hostvars[item].ansible_host }} {{ hostvars[item]['inventory_hostname'] }}" 
       state: present
     loop: "{{ ansible_play_hosts }}"
+    tags: hosts
 
   - name: install parted
     apt:
@@ -27,6 +30,7 @@
       update_cache: yes
       install_recommends: no
     when: ansible_os_family == "Debian"
+    tags: disk
 
   - name: install parted
     yum:
@@ -34,6 +38,7 @@
       state: present
       update_cache: yes
     when: ansible_os_family == "Redhat"
+    tags: disk
 
   - name: new primary partition
     parted:
@@ -43,6 +48,7 @@
     loop: "{{ data_disks }}"
     loop_control:
       label: "{{ item.device }}"
+    tags: disk
 
   - name: format disk
     filesystem:
@@ -53,7 +59,7 @@
     loop: "{{ data_disks }}"
     loop_control:
       label: "{{ item.device }}"
-    tags: format
+    tags: disk
   
   - name: mount data_disks
     mount:
@@ -63,10 +69,11 @@
       opts: defaults
       state: mounted
     loop: "{{ data_disks }}"
-    tags: mount
+    tags: disk
 
   - name: force ansible to regather facts(uuid)
     setup: filter='ansible_mounts'
+    tags: disk
 
   - name: update fstab
     replace: 
@@ -79,12 +86,13 @@
       label: 
         - "{{ item.device }}"
         - "{{ item.uuid }}"
-    tags: fstab
+    tags: disk
 
   - name: add group
     group:
       name: "{{ ranger_user.group }}"
       state: present
+    tags: user
   
   - name: add user
     user:
@@ -92,12 +100,14 @@
       group: "{{ ranger_user.group }}"
       shell: /bin/bash
       system: yes
+    tags: user
   
   - name: change password
     user:
       name: "{{ ranger_user.user }}"
       update_password: always
       password: "{{ ranger_user.password|password_hash('sha512') }}"
+    tags: user
 
   - name: add sudoer
     lineinfile:
@@ -108,6 +118,7 @@
       mode: 0400
       create: yes
       validate: "/usr/sbin/visudo -cf %s"
+    tags: user
 
   - name: create ssh dir
     file:
@@ -116,12 +127,14 @@
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
       mode: 0755
+    tags: user
 
   - name: ssh key exist ?
     stat:
       path: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
     register: key_exists
     delegate_to: "{{ jumper_host }}"
+    tags: user
 
   - name: generate ssh key
     raw: yes y | ssh-keygen -t rsa -N '' -q -f /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}
@@ -130,6 +143,7 @@
     delegate_to: "{{ jumper_host }}"
     run_once: True
     when: not key_exists.stat.exists
+    tags: user
 
   - name: fetch ssh key
     fetch:
@@ -140,6 +154,7 @@
       group: "{{ ranger_user.group }}"
       mode: 0600
     delegate_to: "{{ jumper_host }}"
+    tags: user
 
   - name: sync ssh key
     copy:
@@ -148,6 +163,7 @@
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
       mode: 0600
+    tags: user
 
   - name: "{{ home_link_dir }}/{{ ranger_user.user }} exists ?"
     stat:

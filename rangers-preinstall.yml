@@ -54,6 +54,7 @@
     filesystem:
       fstype: ext4
       dev: "{{ item.device }}"
+      opts: -i 8192
       force: "{{ format_confirm }}"
     when: format_confirm
     loop: "{{ data_disks }}"
@@ -99,6 +100,7 @@
       name: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
       shell: /bin/bash
+      uid: "{{ ranger_user.uid }}"
       system: yes
     tags: user
   

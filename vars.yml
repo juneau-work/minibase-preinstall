@@ -1,5 +1,5 @@
 rangers_ssh_private_key: Deploy.key
-ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD" }
+ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD", "uid": "1040" }
 format_confirm: no
 data_disks:
   - {"device": "/dev/sdb1", "mount_point": "/data00"}

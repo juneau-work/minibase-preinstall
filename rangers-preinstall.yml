@@ -92,6 +92,7 @@
   - name: add group
     group:
       name: "{{ ranger_user.group }}"
+      gid: "{{ ranger_user.uid }}"
       state: present
     tags: user
   

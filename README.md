@@ -1,3 +1,20 @@
+### 说明
+脚本仅用于rangers部署前的准备工作，具体会做如下事情
+1. 设置时区
+2. 设置主机名
+3. 修改/etc/hosts
+4. 磁盘分区、格式化、挂载(带/etc/fstab)
+5. 创建sudo用户(rangers)并设置密码，并生成ssh密钥对(Deploy.key)
+7. 软连接sudo用户家目录到数据目录/data00/rangers  
+
+注： 
+- 执行该脚本的主机可以是任一主机；
+- 除格式化磁盘外，可多次执行，最终结果具有一致性；
+- 磁盘格式化完成后，若要再次执行格式化，需要先进行磁盘的umount操作
+
+
+
+
 ### 一、安装ansible
 ```
 yum -y install centos-release-ansible-29.noarch
@@ -36,7 +53,7 @@ rangers-srv1 ansible_host=192.168.56.31| rangers-srv1为主机名
 - vars.yml
 ```
 rangers_ssh_private_key: Deploy.key
-ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD" }
+ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD", "uid": "1040" }
 format_confirm: no
 data_disks:
   - {"device": "/dev/sdb1", "mount_point": "/data00"}
@@ -63,6 +80,17 @@ timezone| 时区| 默认Asia/Shanghai|
 ```
 ansible-playbook -i hosts rangers-preinstall.yml
 ```
+```
+#可通过标签指定需要的task
+ansible-playbook -i hosts rangers-preinstall.yml -t timezone,hostname,hosts
+```
+共包含如下标签  
+- timezone
+- hostname
+- hosts
+- disk
+- user
+- home_link
 
 
 

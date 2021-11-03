@@ -100,6 +100,7 @@
     user:
       name: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
+      append: yes
       shell: /bin/bash
       uid: "{{ ranger_user.uid }}"
       system: yes

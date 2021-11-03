@@ -1,6 +1,6 @@
 ---
 - name: rangers preinstall
-  hosts: rangers
+  hosts: all
   vars_files:
     - vars.yml
 

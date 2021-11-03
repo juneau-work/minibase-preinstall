@@ -100,3 +100,34 @@ ansible -i hosts all -m ping
 ansible -i hosts all -m raw -a "free -g"
 ansible -i hosts all -m service -a "name=chrony state=restarted"
 ```
+
+
+
+### 四、新增节点
+- hosts
+```
+cat <<EOF > hosts
+[all:vars]
+ansible_user=sudoer_user
+#ansible_password=sudoer_pwd
+ansible_ssh_private_key_file=/tmp/sudoer_private_key.rsa
+ansible_become=true
+ansible_connection=paramiko
+
+[rangers]
+rangers-srv1 ansible_host=192.168.56.31
+rangers-srv2 ansible_host=192.168.56.32
+rangers-srv3 ansible_host=192.168.56.33
+
+#增加[add]章节
+[add]
+rangers-srv4 ansible_host=192.168.56.34
+rangers-srv5 ansible_host=192.168.56.35
+rangers-srv6 ansible_host=192.168.56.36
+EOF
+```
+- 执行playbook
+```
+#注: -l add 指定章节一定不要漏不能错
+ansible-playbook -i hosts rangers-preinstall.yml -l add
+```

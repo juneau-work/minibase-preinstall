@@ -1,5 +1,5 @@
 ---
-- name: rangers preinstall
+- name: minibase preinstall
   hosts: all
   vars_files:
     - vars.yml
@@ -135,13 +135,13 @@
 
   - name: ssh key exist ?
     stat:
-      path: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
+      path: /home/{{ ranger_user.user }}/{{ minibase_ssh_private_key }}.pub
     register: key_exists
     delegate_to: "{{ jumper_host }}"
     tags: user
 
   - name: generate ssh key
-    raw: yes y | ssh-keygen -t rsa -N '' -q -f /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}
+    raw: yes y | ssh-keygen -t rsa -N '' -q -f /home/{{ ranger_user.user }}/{{ minibase_ssh_private_key }}
     become: yes
     become_user: "{{ ranger_user.user }}"
     delegate_to: "{{ jumper_host }}"
@@ -152,8 +152,8 @@
   - name: fetch ssh key
     fetch:
       flat: yes
-      src: /home/{{ ranger_user.user }}/{{ rangers_ssh_private_key }}.pub
-      dest: /tmp/{{ rangers_ssh_private_key }}.pub
+      src: /home/{{ ranger_user.user }}/{{ minibase_ssh_private_key }}.pub
+      dest: /tmp/{{ minibase_ssh_private_key }}.pub
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
       mode: 0600
@@ -162,7 +162,7 @@
 
   - name: sync ssh key
     copy:
-      src: /tmp/{{ rangers_ssh_private_key }}.pub
+      src: /tmp/{{ minibase_ssh_private_key }}.pub
       dest: /home/{{ ranger_user.user }}/.ssh/authorized_keys
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"

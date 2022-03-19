@@ -3,8 +3,6 @@
   hosts: all
   vars_files:
     - vars.yml
-  vars:
-    disks: []
 
   tasks:
   - name: set timezone
@@ -25,13 +23,8 @@
     loop: "{{ ansible_play_hosts }}"
     tags: hosts
 
-  - set_fact:
-      disks: "{{ disks + [ item.device ] }}"
-    loop: "{{ data_disks }}"
-    tags: disk
-
   - name: detect device filesystem
-    shell: "file -s {{ disks | join(' ') }}"
+    shell: "file -s {{ data_disks | join(' ') }}"
     register: block
     tags: disk
 
@@ -47,12 +40,14 @@
   
   - name: mount data_disks
     mount:
-      path: "{{ item.mount_point }}"
-      src: "{{ item.device }}"
+      path: /data0{{ index }}
+      src: "{{ item }}"
       fstype: ext4
       opts: defaults
       state: mounted
-    loop: "{{ data_disks }}"
+    loop: "{{ data_disks | flatten(levels=1) }}"
+    loop_control:
+      index_var: index
     tags: disk
 
   - name: force ansible to regather facts(uuid)

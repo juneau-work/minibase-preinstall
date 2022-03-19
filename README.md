@@ -54,10 +54,10 @@ minibase-srv1 ansible_host=192.168.56.31| minibase-srv1为主机名
 ```
 minibase_ssh_private_key: Deploy.key
 ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD", "uid": "1040" }
-format_confirm: "{{ format_force | default('no') }}"
+format_confirm: no
 data_disks:
-  - {"device": "/dev/sdb", "mount_point": "/data00"}
-  - {"device": "/dev/sdc", "mount_point": "/data01"}
+  - {"device": "/dev/sdb1", "mount_point": "/data00"}
+  - {"device": "/dev/sdc1", "mount_point": "/data01"}
 home_link: yes
 home_link_dir: "{{ data_disks[0]['mount_point'] }}"
 jumper_host: "{{ groups['minibase'][0] }}"
@@ -67,7 +67,7 @@ timezone: Asia/Shanghai
 ---|---|---
 minibase_ssh_private_key| ssh密钥对私钥名| 默认Deploy.key|
 ranger_user| 设置sudo用户、组、密码| 默认dataminibase|
-format_confirm| bool值，是否格式化磁盘| 默认为no，可通过自定义参数format_force修改|
+format_confirm| bool值，是否格式化磁盘| 需要格式化请修改为yes，请谨慎使用|
 data_disks| 数据盘和挂载点| |
 jumper_host| 运行产品安装脚本的主机| 默认为hosts列表中的第一台主机|
 home_link| bool值，是否创建sudo用户家目录的软链接| 用于dataminibase 家目录过小|
@@ -92,10 +92,6 @@ ansible-playbook -i hosts minibase-preinstall.yml -t timezone,hostname,hosts
 - user
 - home_link
 
-```
-#强制格式化磁盘，慎用
-#ansible-playbook -i hosts minibase-preinstall.yml -e format_force=yes
-```
 
 
 ### debug

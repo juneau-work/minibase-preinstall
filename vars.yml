@@ -2,10 +2,9 @@ minibase_ssh_private_key: Deploy.key
 ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD", "uid": "1040" }
 format_confirm: "{{ format_force | default('no') }}"
 data_disks:
-  - {"device": "/dev/sdb", "mount_point": "/data00"}
-  - {"device": "/dev/sdc", "mount_point": "/data01"}
-  - {"device": "/dev/sdd", "mount_point": "/data02"}
+  - /dev/sdb
+  - /dev/sdc
 home_link: yes
-home_link_dir: "{{ data_disks[-1]['mount_point'] }}"
+home_link_dir: /data0{{ (data_disks | length) -1 }}
 jumper_host: "{{ groups['minibase'][0] }}"
 timezone: Asia/Shanghai

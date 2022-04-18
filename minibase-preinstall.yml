@@ -23,11 +23,6 @@
     loop: "{{ groups['all'] }}"
     tags: hosts
 
-  - name: detect device filesystem
-    shell: "file -s {{ data_disks | join(' ') }}"
-    register: block
-    tags: disk
-
   - name: install depends
     apt:
       name: ["parted", "sudo"]
@@ -44,6 +39,11 @@
       update_cache: yes
     when: ansible_os_family == "Redhat"
     tags: depends
+
+  - name: detect device filesystem
+    shell: "file -s {{ data_disks | join(' ') }}"
+    register: block
+    tags: disk
 
   - name: format disk
     filesystem:

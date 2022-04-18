@@ -28,6 +28,23 @@
     register: block
     tags: disk
 
+  - name: install parted
+    apt:
+      name: ["parted", "sudo"]
+      state: present
+      update_cache: yes
+      install_recommends: no
+    when: ansible_os_family == "Debian"
+    tags: depends
+
+  - name: install parted
+    yum:
+      name: ["parted", "sudo"]
+      state: present
+      update_cache: yes
+    when: ansible_os_family == "Redhat"
+    tags: depends
+
   - name: format disk
     filesystem:
       fstype: ext4

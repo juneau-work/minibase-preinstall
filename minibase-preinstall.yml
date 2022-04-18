@@ -20,7 +20,7 @@
       dest: /etc/hosts 
       line: "{{ hostvars[item].ansible_host }} {{ hostvars[item]['inventory_hostname'] }}" 
       state: present
-    loop: "{{ ansible_play_hosts }}"
+    loop: "{{ groups['all'] }}"
     tags: hosts
 
   - name: detect device filesystem
@@ -28,7 +28,7 @@
     register: block
     tags: disk
 
-  - name: install parted
+  - name: install depends
     apt:
       name: ["parted", "sudo"]
       state: present
@@ -37,7 +37,7 @@
     when: ansible_os_family == "Debian"
     tags: depends
 
-  - name: install parted
+  - name: install depends
     yum:
       name: ["parted", "sudo"]
       state: present

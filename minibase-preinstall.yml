@@ -25,7 +25,7 @@
 
   - name: install depends
     apt:
-      name: ["parted", "sudo"]
+      name: ["parted", "sudo", "lvm2"]
       state: present
       update_cache: yes
       install_recommends: no
@@ -34,10 +34,10 @@
 
   - name: install depends
     yum:
-      name: ["parted", "sudo"]
+      name: ["parted", "sudo", "lvm2"]
       state: present
       update_cache: yes
-    when: ansible_os_family == "Redhat"
+    when: ansible_os_family == "RedHat"
     tags: depends
 
   - name: detect device filesystem
@@ -95,7 +95,6 @@
     user:
       name: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
-      append: yes
       shell: /bin/bash
       uid: "{{ ranger_user.uid }}"
       system: yes
@@ -162,6 +161,16 @@
       group: "{{ ranger_user.group }}"
       mode: 0600
     tags: user
+
+  - name: recursively change ownership of a directory
+    file:
+      path: /data00
+      state: directory
+      recurse: yes
+      owner: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+    when: lvm_enable
+    tags: mode
 
   - name: "{{ home_link_dir }}/{{ ranger_user.user }} exists ?"
     stat:

@@ -20,51 +20,78 @@
       dest: /etc/hosts 
       line: "{{ hostvars[item].ansible_host }} {{ hostvars[item]['inventory_hostname'] }}" 
       state: present
-    loop: "{{ ansible_play_hosts }}"
+    loop: "{{ groups['all'] }}"
     tags: hosts
 
-  - name: detect device filesystem
-    shell: "file -s {{ data_disks | join(' ') }}"
-    register: block
-    tags: disk
-
-  - name: install parted
+  - name: install depends
     apt:
-      name: ["parted", "sudo"]
+      name: ["parted", "sudo", "lvm2"]
       state: present
       update_cache: yes
       install_recommends: no
     when: ansible_os_family == "Debian"
     tags: depends
 
-  - name: install parted
+  - name: install depends
     yum:
-      name: ["parted", "sudo"]
+      name: ["parted", "sudo", "lvm2"]
       state: present
       update_cache: yes
-    when: ansible_os_family == "Redhat"
+    when: ansible_os_family == "RedHat"
     tags: depends
+
+  - name: detect device filesystem
+    shell: "file -s {{ data_disks | join(' ') }}"
+    register: block
+    tags: disk
+
+  - name: vg create
+    lvg:
+      vg: "{{ vg_name }}"
+      pvs: "{{ data_disks }}"
+      pesize: 32
+      state: present
+    tags: 
+      - disk
+      - vg_create
+    ignore_errors: true
+  
+  - name: /dev/mapper/{{ vg_name }}-{{ lv_name }} exists ?
+    stat:
+      path: /dev/mapper/{{ vg_name }}-{{ lv_name }}
+    register: lv_exists
+    tags: 
+      - disk
+      - lv_create
+
+  - name: lv create
+    lvol:
+      vg: "{{ vg_name }}"
+      lv: "{{ lv_name }}"
+      size: 90%FREE
+    tags: 
+      - disk
+      - lv_create
+    when: lv_exits.stat.exists is false
 
   - name: format disk
     filesystem:
       fstype: ext4
-      dev: "{{ item.split(':')[0] }}"
+      dev: /dev/mapper/{{ vg_name }}-{{ lv_name }}
       opts: -i 8192
       force: "{{ format_confirm }}"
-    when: (item | length == 14) or format_confirm
-    loop: "{{ block.stdout_lines }}"
+    when: lvm_enable
     tags: disk
+    ignore_errors: true
   
   - name: mount data_disks
     mount:
-      path: /data0{{ index }}
-      src: "{{ item }}"
+      path: /data00
+      src: /dev/mapper/{{ vg_name }}-{{ lv_name }}
       fstype: ext4
       opts: defaults
       state: mounted
-    loop: "{{ data_disks | flatten(levels=1) }}"
-    loop_control:
-      index_var: index
+    when: lvm_enable
     tags: disk
 
   - name: force ansible to regather facts(uuid)
@@ -95,7 +122,6 @@
     user:
       name: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
-      append: yes
       shell: /bin/bash
       uid: "{{ ranger_user.uid }}"
       system: yes
@@ -162,6 +188,16 @@
       group: "{{ ranger_user.group }}"
       mode: 0600
     tags: user
+
+  - name: recursively change ownership of a directory
+    file:
+      path: /data00
+      state: directory
+      recurse: yes
+      owner: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+    when: lvm_enable
+    tags: mode
 
   - name: "{{ home_link_dir }}/{{ ranger_user.user }} exists ?"
     stat:

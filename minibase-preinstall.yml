@@ -172,7 +172,6 @@
     loop: "{{ data_disks | flatten(levels=1) }}"
     loop_control:
       index_var: index
-    when: lvm_enable
     tags: mode
 
   - name: "{{ home_link_dir }}/{{ ranger_user.user }} exists ?"

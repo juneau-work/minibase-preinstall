@@ -14,11 +14,11 @@
     hostname:
       name: "{{ inventory_hostname }}"
     tags: hostname
-  
+
   - name: /etc/hosts
-    lineinfile: 
-      dest: /etc/hosts 
-      line: "{{ hostvars[item].ansible_host }} {{ hostvars[item]['inventory_hostname'] }}" 
+    lineinfile:
+      dest: /etc/hosts
+      line: "{{ hostvars[item].ansible_host }} {{ hostvars[item]['inventory_hostname'] }}"
       state: present
     loop: "{{ groups['all'] }}"
     tags: hosts
@@ -45,31 +45,56 @@
     register: block
     tags: disk
 
+  - name: format disk
+    filesystem:
+      fstype: ext4
+      dev: "{{ item.split(':')[0] }}"
+      opts: -i 8192
+      force: "{{ format_confirm }}"
+    when: (item | length == 14) or format_confirm
+    loop: "{{ block.stdout_lines }}"
+    tags: disk
+
+  - name: mount data_disks
+    mount:
+      path: /data0{{ index }}
+      src: "{{ item }}"
+      fstype: ext4
+      opts: defaults
+      state: mounted
+    loop: "{{ data_disks | flatten(levels=1) }}"
+    loop_control:
+      index_var: index
+    when: ! lvm_enable
+    tags: disk
+
   - name: vg create
     lvg:
       vg: "{{ vg_name }}"
       pvs: "{{ data_disks }}"
       pesize: 32
       state: present
-    tags: 
+    tags:
       - disk
       - vg_create
+    when: ! lvm_enable
     ignore_errors: true
-  
+
   - name: /dev/mapper/{{ vg_name }}-{{ lv_name }} exists ?
     stat:
       path: /dev/mapper/{{ vg_name }}-{{ lv_name }}
     register: lv_exists
-    tags: 
+    tags:
       - disk
       - lv_create
+    when: ! lvm_enable
 
   - name: lv create
     lvol:
       vg: "{{ vg_name }}"
       lv: "{{ lv_name }}"
       size: 90%FREE
-    tags: 
+    tags:
       - disk
       - lv_create
     when: lv_exits.stat.exists is false
@@ -99,14 +124,14 @@
     tags: disk
 
   - name: update fstab
-    replace: 
+    replace:
       path: /etc/fstab
       regexp: "{{ item.device }}"
       replace: "UUID={{ item.uuid }}"
       backup: yes
     loop: "{{ ansible_mounts | selectattr('mount', 'match', '^/data0[0-9]$') | list }}"
     loop_control:
-      label: 
+      label:
         - "{{ item.device }}"
         - "{{ item.uuid }}"
     tags: disk
@@ -117,7 +142,7 @@
       gid: "{{ ranger_user.uid }}"
       state: present
     tags: user
-  
+
   - name: add user
     user:
       name: "{{ ranger_user.user }}"
@@ -126,7 +151,7 @@
       uid: "{{ ranger_user.uid }}"
       system: yes
     tags: user
-  
+
   - name: change password
     user:
       name: "{{ ranger_user.user }}"
@@ -191,6 +216,19 @@
 
   - name: recursively change ownership of a directory
     file:
+      path: /data0{{ index }}
+      state: directory
+      recurse: yes
+      owner: "{{ ranger_user.user }}"
+      group: "{{ ranger_user.group }}"
+    loop: "{{ data_disks | flatten(levels=1) }}"
+    loop_control:
+      index_var: index
+    when: ! lvm_enable
+    tags: mode
+
+  - name: recursively change ownership of a directory
+    file:
       path: /data00
       state: directory
       recurse: yes
@@ -225,7 +263,7 @@
     tags: home_link
 
   - name: rm /home/{{ ranger_user.user }}
-    file: 
+    file:
       path: /home/{{ ranger_user.user }}
       state: absent
     when: home_link_src.stat.isdir is defined and home_link_src.stat.isdir and home_link

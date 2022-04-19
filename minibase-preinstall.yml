@@ -164,11 +164,14 @@
 
   - name: recursively change ownership of a directory
     file:
-      path: /data00
+      path: /data0{{ index }}
       state: directory
       recurse: yes
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
+    loop: "{{ data_disks | flatten(levels=1) }}"
+    loop_control:
+      index_var: index
     when: lvm_enable
     tags: mode
 

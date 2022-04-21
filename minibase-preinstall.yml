@@ -75,7 +75,7 @@
     tags: disk
     when: lvm_enable
 
-  - name: vg create
+  - name: vg create (lvm)
     lvg:
       vg: "{{ vg_name }}"
       pvs: "{{ data_disks }}"
@@ -84,7 +84,7 @@
     tags: disk
     when: lvm_enable and lv_exists.stat.exists == false
 
-  - name: lv create
+  - name: lv create (lvm)
     lvol:
       vg: "{{ vg_name }}"
       lv: "{{ lv_name }}"

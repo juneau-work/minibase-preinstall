@@ -51,11 +51,11 @@
       dev: "{{ item.split(':')[0] }}"
       opts: -i 8192
       force: "{{ format_confirm }}"
-    when: (item | length == 14) or format_confirm
+    when: (not lvm_enable) and item | length == 14
     loop: "{{ block.stdout_lines }}"
     tags: disk
 
-  - name: mount data_disks
+  - name: mount disk
     mount:
       path: /data0{{ index }}
       src: "{{ item }}"
@@ -65,8 +65,15 @@
     loop: "{{ data_disks | flatten(levels=1) }}"
     loop_control:
       index_var: index
-    when: ! lvm_enable
+    when: not lvm_enable
     tags: disk
+
+  - name: /dev/mapper/{{ vg_name }}-{{ lv_name }} exists ?
+    stat:
+      path: /dev/mapper/{{ vg_name }}-{{ lv_name }}
+    register: lv_exists
+    tags: disk
+    when: lvm_enable
 
   - name: vg create
     lvg:
@@ -74,42 +81,27 @@
       pvs: "{{ data_disks }}"
       pesize: 32
       state: present
-    tags:
-      - disk
-      - vg_create
-    when: ! lvm_enable
-    ignore_errors: true
-
-  - name: /dev/mapper/{{ vg_name }}-{{ lv_name }} exists ?
-    stat:
-      path: /dev/mapper/{{ vg_name }}-{{ lv_name }}
-    register: lv_exists
-    tags:
-      - disk
-      - lv_create
-    when: ! lvm_enable
+    tags: disk
+    when: lvm_enable and lv_exists.stat.exists == false
 
   - name: lv create
     lvol:
       vg: "{{ vg_name }}"
       lv: "{{ lv_name }}"
       size: 90%FREE
-    tags:
-      - disk
-      - lv_create
-    when: lv_exits.stat.exists is false
+    tags: disk
+    when: lvm_enable and lv_exists.stat.exists == false
 
-  - name: format disk
+  - name: format disk (lvm)
     filesystem:
       fstype: ext4
       dev: /dev/mapper/{{ vg_name }}-{{ lv_name }}
       opts: -i 8192
       force: "{{ format_confirm }}"
-    when: lvm_enable
+    when: lvm_enable and format_confirm 
     tags: disk
-    ignore_errors: true
   
-  - name: mount data_disks
+  - name: mount disk (lvm)
     mount:
       path: /data00
       src: /dev/mapper/{{ vg_name }}-{{ lv_name }}
@@ -224,7 +216,7 @@
     loop: "{{ data_disks | flatten(levels=1) }}"
     loop_control:
       index_var: index
-    when: ! lvm_enable
+    when: not lvm_enable
     tags: mode
 
   - name: recursively change ownership of a directory

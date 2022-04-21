@@ -6,4 +6,5 @@ ansible_become=true
 ansible_connection=paramiko
 
 [minibase]
-minibase-srv1 ansible_host=192.168.56.51
+minibase-srv1 ansible_host=192.168.56.31
+minibase-srv2 ansible_host=192.168.56.51

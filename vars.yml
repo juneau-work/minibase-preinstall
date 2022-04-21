@@ -8,6 +8,6 @@ home_link: yes
 home_link_dir: /data0{{ (data_disks | length) -1 }}
 jumper_host: "{{ groups['minibase'][0] }}"
 timezone: Asia/Shanghai
-lvm_enable: yes
+lvm_enable: no
 vg_name: data
 lv_name: pool

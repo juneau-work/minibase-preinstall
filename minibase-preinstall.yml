@@ -51,7 +51,7 @@
       dev: "{{ item.split(':')[0] }}"
       opts: -i 8192
       force: "{{ format_confirm }}"
-    when: (not lvm_enable) and item | length == 14
+    when: (not lvm_enable) and item | length < 20
     loop: "{{ block.stdout_lines }}"
     tags: disk
 

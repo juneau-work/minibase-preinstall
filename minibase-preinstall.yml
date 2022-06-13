@@ -227,7 +227,7 @@
       owner: "{{ ranger_user.user }}"
       group: "{{ ranger_user.group }}"
     when: lvm_enable
-    tags: mode
+    tags: disk
 
   - name: "{{ home_link_dir }}/{{ ranger_user.user }} exists ?"
     stat:

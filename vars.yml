@@ -1,10 +1,10 @@
 minibase_ssh_private_key: Deploy.key
-ranger_user: { "user": "demo", "group": "demo", "password": "demoPWD", "uid": "1040" }
+ranger_user: { "user": "minibase", "group": "minibase", "password": "minibasePWD", "uid": "1040" }
 format_confirm: "{{ format_force | default('no') }}"
 data_disks:
   - /dev/sdb
   - /dev/sdc
-home_link: yes
+home_link: no
 home_link_dir: /data0{{ (data_disks | length) -1 }}
 jumper_host: "{{ groups['minibase'][0] }}"
 timezone: Asia/Shanghai
